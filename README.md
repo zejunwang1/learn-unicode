@@ -1,7 +1,5 @@
 # Learn Unicode the easy way
 
-@[toc](目录)
-
 ## Unicode 简介
 
 Unicode，全称为 Unicode 标准 (The Unicode Standard)，是为了解决传统[字符编码](https://en.wikipedia.org/wiki/Character_encoding)方案的局限而产生的，它为每种语言中的每个字符分配唯一的字符编号即代码点 (Code Point)，以满足跨语言、跨平台进行文本转换、处理的要求。
