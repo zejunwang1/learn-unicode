@@ -4,7 +4,183 @@
 
 Unicode，全称为 Unicode 标准 (The Unicode Standard)，是为了解决传统[字符编码](https://en.wikipedia.org/wiki/Character_encoding)方案的局限而产生的，它为每种语言中的每个字符分配唯一的字符编号即代码点 (Code Point)，以满足跨语言、跨平台进行文本转换、处理的要求。
 
-Unicode 字符集的编码范围为`0x000000 ~ 0x10FFFF`，可以容纳一百多万个字符，每个字符都有一个独一无二的二进制数值与之相对应，比如：汉字 "中" 的码点为`0x4E2D`。
+Unicode 字符集的编码范围为`0x000000~0x10FFFF`，可以容纳一百多万个字符，每个字符都有一个独一无二的二进制数值与之相对应，比如：汉字 "中" 的码点为`0x4E2D`。
+
+## Unicode 字符存储
+
+Unicode 字符集只规定了每个字符的二进制值，但字符具体如何存储并没有规定。UTF-8, UTF-16, UTF-32 分别代表了三种不同形式的存储和编码的映射规则。其中 "UTF" 是 "Unicode Transformation Format" 的缩写，意思是 "Unicode 转换格式"，后面的数字表明至少使用多少个比特位来存储字符。比如：UTF-8 编码至少需要 8 个比特位也就是一个字节来存储字符，UTF-16 和 UTF-32 分别需要最少 2 个字节和 4 个字节来存储字符。
+
+### UTF-8 编码
+
+UTF-8 编码是 Unicode 字符集的一种编码方式，其特点是使用**变长字节数**来编码，每个代码点被编码为 1 至 4 个字节。
+
+| 字节数 | Unicode 编码范围        | 十进制范围           | 二进制编码格式                             |
+| --- | ------------------- | --------------- | ----------------------------------- |
+| 单字节 | 0x0000 - 0x007F     | 0 - 127         | 0XXXXXXX（兼容 ASCII 编码）               |
+| 双字节 | 0x0080 - 0x07FF     | 128 - 2047      | 110XXXXX 10XXXXXX                   |
+| 三字节 | 0x0800 - 0xFFFF     | 2048 - 65535    | 1110XXXX 10XXXXXX 10XXXXXX          |
+| 四字节 | 0x010000 - 0x10FFFF | 65536 - 1114111 | 11110XXX 10XXXXXX 10XXXXXX 10XXXXXX |
+
+二进制编码格式中的 0、110、1110、11110 和 10 相当于 UTF-8 编码中各个字节的前缀，因此称之为前缀码。**UTF-8 编码中的前缀码起到了很好的区分和标识的作用**：
+
+- 若当前字节的首位为 0，表示这是一个单字节编码的 ASCII 字符；
+
+- 若当前字节的前两位为 10，表示该字节为多字节编码字符的后续字节（非首字节）；
+
+- 若当前字节的前两位为 11，表示该字节为多字节编码字符的首字节。前缀码有多少个 1，表示该字符为几个字节的编码。
+
+```cpp
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+  const char* s = "test字符串";
+  int len = strlen(s);
+  for (int i = 0; i < len; ++i) {
+    if ((s[i] & 0x80) == 0)
+      printf("这是一个单字节编码的 ASCII 字符\n");
+    else {
+      if ((s[i] & 0xC0) == 0x80)
+        printf("该字节为多字节编码字符的后续字节（非首字节）\n");
+      else
+        printf("该字节为多字节编码字符的首字节\n");
+    }
+  }
+}
+```
+
+#### 示例
+
+以汉字 "国" 为例：
+
+- 编码时："国" 的 Unicode 为 0x56FD (101011011111101)，对照可知其 UTF-8 编码为 3 个字节，编码形式为 1110XXXX 10XXXXXX 10XXXXXX，填充方式是将 "国" 的 Unicode 二进制从后向前填充，多余的 X 使用 0 替换，因此 "国" 的 UTF-8 编码为 11100101 10011011 10111101，转换为十六进制为 0xE59BBD；
+
+- 解码时：如果首字节首位为 0，则该字节对应一个 ASCII 字符。如果首字节前三位为 110，那么表示 2 个字节表示一个字符（首字节前 n 位为 1 的个数代表字符占用字节数）。"国" 的 UTF-8 编码为 11100101 10011011 10111101，首字节的前三位为 1，说明是 3 个字节表示一个字符，根据规则 1110XXXX 10XXXXXX 10XXXXXX 获取到 X 的部分，即 101011011111101，转换为十六进制为 0x56FD，对应 Unicode 字符集的汉字 "国"。
+
+#### 编码实现
+
+使用`get_codepoint_bytes`函数获得码点需要占用的字节数
+
+```cpp
+int get_codepoint_bytes(int cp) {
+  if (cp <= 0x7F)
+    return 1;
+  if (cp <= 0x7FF)
+    return 2;
+  if (cp <= 0xFFFF)
+    return 3;
+  return 4;
+}
+```
+
+使用函数`utf8_encode`获得码点的 UTF-8 编码
+
+```cpp
+void utf8_encode(int cp, char* dst, int cp_bytes) {
+    switch (cp_bytes) {
+      case 4: dst[cp_bytes - 3] = 0x80 | ((cp >> 12) & 0x3F);
+      case 3: dst[cp_bytes - 2] = 0x80 | ((cp >>  6) & 0x3F);
+      case 2: dst[cp_bytes - 1] = 0x80 | ((cp >>  0) & 0x3F);
+              dst[0] = (unsigned char)((0xFF00uL >> cp_bytes) | (cp >> (6 * cp_bytes - 6)));
+              break;
+      case 1:
+              dst[0] = (unsigned char)cp;
+              break;
+    }
+}
+```
+
+#### 解码实现
+
+使用`get_num_bytes_of_utf8_char`函数根据 UTF-8 编码的首字节获得编码占用的字节数
+
+```cpp
+int get_num_bytes_of_utf8_char(char first_byte, int len = 0) {
+  assert(((unsigned char)first_byte & 0xC0) != 0x80);
+  if (((unsigned char)first_byte & 0x80) == 0)
+    return 1;
+  if (((unsigned char)first_byte & 0xE0) == 0xC0)
+    return 2;
+  if (((unsigned char)first_byte & 0xF0) == 0xE0)
+    return 3;
+  return 4;
+}
+```
+
+使用`utf8_decode`函数获得字符的 Unicode 值
+
+```cpp
+int utf8_decode(const char* s, int cp_bytes) {
+  int cp = (unsigned char)*s;
+  if (cp_bytes > 1) {
+    cp &= 0x7F >> cp_bytes;
+    for (int i = 1; i < cp_bytes; ++i)
+      cp = (cp << 6) | ((unsigned char)s[i] & 0x3F);
+  }
+  return cp;
+}
+```
+
+UTF-8 编码的优势是节省空间、自动纠错性能好、利于传输、扩展性强，劣势是不利于程序内部处理，比如正则表达式检索。
+
+### UTF-16 编码
+
+UTF-16 编码将 Unicode 分成了两个范围，分别通过不同的方式进行存储。
+
+| 字节数 | Unicode 编码范围       | 十进制范围           | 二进制编码格式                           |
+| --- | ------------------ | --------------- | --------------------------------- |
+| 双字节 | 0x0000 - 0xFFFF    | 0 - 65535       | XXXXXXXX XXXXXXXX                 |
+| 四字节 | 0x10000 - 0x10FFFF | 65536 - 1114111 | 110110YYYYYYYYYY 110111XXXXXXXXXX |
+
+在 Unicode 基本多文种平面内有个代理区，编码范围是`0xD800~0xDFFF`，共有 2048 个码位，此区间不对应任何字符，主要用于映射其他辅助平面的字符。代理区分为两部分：`0xD800~0xDBFF`为高位代理，`0xDC00~0xDFFF`为低位代理。
+
+UTF-16 编码的规则是：
+
+- 基本平面`(0x0000~0xFFFF)`内的字符使用两个字节来表示，直接进行二进制编码。
+
+- 其他辅助平面`(0x010000~0x10FFFF)`内的字符使用四个字节来表示：
+  
+  - 首先将代码点减去`0x010000`，得到一个位于`0x00`和`0x0FFFFF`之间的数字
+  
+  - 将该数字转换为 20 位二进制数，位数不够的左边补 0，记作`YYYYYYYYYY XXXXXXXXXX`
+  
+  - 取出`YYYYYYYYYY`，并加上`11011000 00000000 (0xD800)`得到高位代理
+  
+  - 取出`XXXXXXXXXX`，并加上`11011100 00000000 (0xDC00)`得到低位代理
+  
+  - 高位代理和低位代理相连，得到`110110YY YYYYYYYY 110111XX XXXXXXXX`
+
+以汉字 "国" 为例，编码时："国" 的 Unicode 为 0x56FD (101011011111101)，直接进行二进制编码，位数不够的左边补 0，因此 "国" 的 UTF-16 编码为 0101011011111101，即 0x56FD。
+
+以汉字 "𠈠" 为例，编码时："𠈠" 的 Unicode 为 0x20220 (100000001000100000)，对照可知其 UTF-16 编码为 4 个字节，首先将 0x20220 减去 0x10000 得到 0x10220，将这个数字转化为 20 位二进制数，即为 00010000001000100000，取出前 10 位 (0001000000) 并加上 0xD800 得到高位代理 1101100001000000 (0xD840)，取出后 10 位 (1000100000) 并加上 0xDC00 得到低位代理 1101111000100000 (0xDE20)，将高位代理与低位代理相连，得到 "𠈠" 的 UTF-16 编码为 0xD840DE20。
+
+对于含有大量中文或其他二字节长的字符流来说，UTF-16 编码可以节省大量的存储空间。但由于 UTF-8 的兼容性和对英文的支持，西方都提倡统一使用 UTF-8 作为字符编码，这样可以彻底解决乱码问题，目前基本上所有的开发环境和源代码文件都是统一的 UTF-8 编码。
+
+### UTF-32 编码
+
+| 字节数 | Unicode 编码范围      | 十进制范围       | 二进制编码格式                             |
+| --- | ----------------- | ----------- | ----------------------------------- |
+| 四字节 | 0x0000 - 0x10FFFF | 0 - 1114111 | XXXXXXXX XXXXXXXX XXXXXXXX XXXXXXXX |
+
+UTF-32 编码的规则是使用 4 个字节存储字符，直接进行代码点的二进制编码，向左补 0。
+
+以汉字 "国" 为例，其 Unicode 为 0x56FD (101011011111101)，直接进行二进制编码并补 0，得到 000000000101011011111101。
+
+ https://github.com/unicode-org/icu
+
+## 处理工具
+
+- The home of the ICU project source code: https://github.com/unicode-org/icu
+
+- a clean C library for processing UTF-8 Unicode data: https://github.com/JuliaStrings/utf8proc
+
+- A bridge between Unicode encoded strings and std::string: https://github.com/zejunwang1/stringutils
+
+- Unicode (UTF-8) capable std::string: https://github.com/DuffsDevice/tiny-utf8
+
+- UTF-8 with C++ in a Portable Way: https://github.com/nemtrif/utfcpp
+
+- single header utf8 string functions for C and C++: https://github.com/sheredom/utf8.h
 
 ## Unicode 字符平面映射
 
@@ -191,125 +367,21 @@ Unicode 将编码空间分成 17 个平面，以 0 到 16 编号，每个平面�
 | FF00-FFEF                                                                                                               | [半角](https://zh.wikipedia.org/wiki/%E5%8D%8A%E5%BD%A2 "半角")及[全角](https://zh.wikipedia.org/wiki/%E5%85%A8%E5%BD%A2 "全角")字符                                                                                                                                                                                                                            | Halfwidth and Fullwidth Forms                  |
 | FFF0-FFFF                                                                                                               | [特殊字符区](https://zh.wikipedia.org/w/index.php?title=%E7%89%B9%E6%AE%8A%E5%AD%97%E5%85%83%E5%8D%80&action=edit&redlink=1)                                                                                                                                                                                                                              | Specials                                       |
 
-## Unicode 字符存储
+### 常用的 Unicode 字符范围
 
-Unicode 字符集只规定了每个字符的二进制值，但字符具体如何存储并没有规定。UTF-8, UTF-16, UTF-32 分别代表了三种不同形式的存储和编码的映射规则。其中 "UTF" 是 "Unicode Transformation Format" 的缩写，意思是 "Unicode 转换格式"，后面的数字表明至少使用多少个比特位来存储字符。比如：UTF-8 编码至少需要 8 个比特位也就是一个字节来存储字符，UTF-16 和 UTF-32 分别需要最少 2 个字节和 4 个字节来存储字符。
-
-### UTF-8 编码
-
-UTF-8 编码是 Unicode 字符集的一种编码方式，其特点是使用**变长字节数**来编码，每个代码点被编码为 1 至 4 个字节。
-
-| 字节数 | Unicode 编码范围        | 二进制编码格式                             |
-| --- | ------------------- | ----------------------------------- |
-| 单字节 | 0x0000 - 0x007F     | 0XXXXXXX（兼容 ASCII 编码）               |
-| 双字节 | 0x0080 - 0x07FF     | 110XXXXX 10XXXXXX                   |
-| 三字节 | 0x0800 - 0xFFFF     | 1110XXXX 10XXXXXX 10XXXXXX          |
-| 四字节 | 0x010000 - 0x10FFFF | 11110XXX 10XXXXXX 10XXXXXX 10XXXXXX |
-
-二进制编码格式中的 0、110、1110、11110 和 10 相当于 UTF-8 编码中各个字节的前缀，因此称之为前缀码。**UTF-8 编码中的前缀码起到了很好的区分和标识的作用**：
-
-- 若当前字节的首位为 0，表示这是一个单字节编码的 ASCII 字符；
-
-- 若当前字节的前两位为 10，表示该字节为多字节编码字符的后续字节（非首字节）；
-
-- 若当前字节的前两位为 11，表示该字节为多字节编码字符的首字节。前缀码有多少个 1，表示该字符为几个字节的编码。
-
-```cpp
-#include <stdio.h>
-#include <string.h>
-
-int main() {
-  const char* s = "test字符串";
-  int len = strlen(s);
-  for (int i = 0; i < len; ++i) {
-    if ((s[i] & 0x80) == 0)
-      printf("这是一个单字节编码的 ASCII 字符\n");
-    else {
-      if ((s[i] & 0xC0) == 0x80)
-        printf("该字节为多字节编码字符的后续字节（非首字节）\n");
-      else
-        printf("该字节为多字节编码字符的首字节\n");
-    }
-  }
-}
-```
-
-#### 示例
-
-以汉字 "中" 为例：
-
-- 编码时："中" 的 Unicode 为 0x4E2D (100111000101101)，对照可知其 UTF-8 编码为 3 个字节，编码形式为 1110XXXX 10XXXXXX 10XXXXXX，填充方式是将 "中" 的 Unicode 二进制从后向前填充，多余的 X 使用 0 替换，因此 "中" 的 UTF-8 编码为 11100100 10111000 10101101，转换为十六进制为 0xE4B8AD；
-
-- 解码时：如果首字节首位为 0，则该字节对应一个 ASCII 字符。如果首字节前三位为 110，那么表示 2 个字节表示一个字符（首字节前 n 位为 1 的个数代表字符占用字节数）。"中" 的 UTF-8 编码为 11100100 10111000 10101101，首字节的前三位为 1，说明 3 个字节表示一个字符，根据规则 1110XXXX 10XXXXXX 10XXXXXX 获取到 X 的部分，即 100111000101101，转换为十六进制为 0x4E2D，对应 Unicode 字符集的汉字 "中"。
-
-#### 编码实现
-
-使用`get_codepoint_bytes`函数获得码点需要占用的字节数
-
-```cpp
-int get_codepoint_bytes(int cp) {
-  if (cp <= 0x7F)
-    return 1;
-  if (cp <= 0x7FF)
-    return 2;
-  if (cp <= 0xFFFF)
-    return 3;
-  return 4;
-}
-```
-
-使用函数`utf8_encode`获得码点的 UTF-8 编码
-
-```cpp
-void utf8_encode(int cp, char* dst, int cp_bytes) {
-    switch (cp_bytes) {
-      case 4: dst[cp_bytes - 3] = 0x80 | ((cp >> 12) & 0x3F);
-      case 3: dst[cp_bytes - 2] = 0x80 | ((cp >>  6) & 0x3F);
-      case 2: dst[cp_bytes - 1] = 0x80 | ((cp >>  0) & 0x3F);
-              dst[0] = (unsigned char)((0xFF00uL >> cp_bytes) | (cp >> (6 * cp_bytes - 6)));
-              break;
-      case 1:
-              dst[0] = (unsigned char)cp;
-              break;
-    }
-}
-```
-
-#### 解码实现
-
-使用`get_num_bytes_of_utf8_char`函数根据 UTF-8 编码的首字节获得编码占用的字节数
-
-```cpp
-int get_num_bytes_of_utf8_char(char first_byte, int len = 0) {
-  assert(((unsigned char)first_byte & 0xC0) != 0x80);
-  if (((unsigned char)first_byte & 0x80) == 0)
-    return 1;
-  if (((unsigned char)first_byte & 0xE0) == 0xC0)
-    return 2;
-  if (((unsigned char)first_byte & 0xF0) == 0xE0)
-    return 3;
-  return 4;
-}
-```
-
-使用`utf8_decode`函数获得字符的 Unicode 值
-
-```cpp
-int utf8_decode(const char* s, int cp_bytes) {
-  int cp = (unsigned char)*s;
-  if (cp_bytes > 1) {
-    cp &= 0x7F >> cp_bytes;
-    for (int i = 1; i < cp_bytes; ++i)
-      cp = (cp << 6) | ((unsigned char)s[i] & 0x3F);
-  }
-  return cp;
-}
-```
-
-
-
-UTF-8 编码的优势是节省空间、自动纠错性能好、利于传输、扩展性强，劣势是不利于程序内部处理，比如正则表达式检索。
-
-### UTF-16 编码
+| 字符描述      | 编码范围      |
+| --------- | --------- |
+| ASCII 字符  | 0000-007F |
+| 汉字        | 4E00-9FA5 |
+| 日文平假名     | 3040-309F |
+| 日文片假名     | 30A0-30FF |
+| 日文片假名拼音扩展 | 31F0-31FF |
+| 韩文拼音      | AC00-D7AF |
+| 韩文字母      | 1100-11FF |
+| 韩文兼容字母    | 3130-318F |
+| CJK 标点符号  | 3000-303F |
+| 半角及全角字符   | FF00-FFEF |
+| 康熙部首      | 2F00-2FDF |
+| 扩展部首      | 2E80-2EFF |
 
 
