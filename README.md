@@ -166,8 +166,6 @@ UTF-32 编码的规则是使用 4 个字节存储字符，直接进行代码点�
 
 以汉字 "国" 为例，其 Unicode 为 0x56FD (101011011111101)，直接进行二进制编码并补 0，得到 000000000101011011111101。
 
- https://github.com/unicode-org/icu
-
 ## 处理工具
 
 - The home of the ICU project source code: https://github.com/unicode-org/icu
