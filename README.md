@@ -23,6 +23,9 @@ Unicode 字符集的编码范围为`0x000000~0x10FFFF`，可以容纳一百多�
 
 以下为一些有意思的 Unicode 字符：
 
+![image](images/emoji.png)
+
+![image](images/mahjong.png)
 
 ## Unicode 字符存储
 
