@@ -1,19 +1,5 @@
 # Learn Unicode the easy way
 
--   [Learn Unicode the easy way](#learn-unicode-the-easy-way)
-    -   [Unicode 简介](#unicode-简介)
-    -   [Unicode 字符存储](#unicode-字符存储)
-        -   [UTF-8 编码](#utf-8-编码)
-            -   [示例](#示例)
-            -   [编码实现](#编码实现)
-            -   [解码实现](#解码实现)
-        -   [UTF-16 编码](#utf-16-编码)
-        -   [UTF-32 编码](#utf-32-编码)
-    -   [处理工具](#处理工具)
-    -   [Unicode 字符平面映射](#unicode-字符平面映射)
-        -   [基本多文种平面](#基本多文种平面)
-        -   [常用的 Unicode 字符范围](#常用的-unicode-字符范围)
-
 ## Unicode 简介
 
 Unicode，全称为 Unicode 标准 (The Unicode Standard)，是为了解决传统[字符编码](https://en.wikipedia.org/wiki/Character_encoding)方案的局限而产生的，它为每种语言中的每个字符分配唯一的字符编号即代码点 (Code Point)，以满足跨语言、跨平台进行文本转换、处理的要求。
@@ -395,3 +381,40 @@ Unicode 将编码空间分成 17 个平面，以 0 到 16 编号，每个平面�
 | 半角及全角字符   | FF00-FFEF |
 | 康熙部首      | 2F00-2FDF |
 | 扩展部首      | 2E80-2EFF |
+
+## Unicode 字符类别
+
+[Unicode 字符类别列表](https://www.compart.com/en/unicode/category)
+
+| 类别                                                   | 中文说明                                                                | 英文说明                  | 字符个数   |
+| ---------------------------------------------------- | ------------------------------------------------------------------- | --------------------- | ------ |
+| Cn                                                   | 指示字符未被分配给任何 Unicode 类别                                              | Other Not Assigned    | —      |
+| [Cc](https://www.compart.com/en/unicode/category/Cc) | 控制字符，其 Unicode 值是 U+007F，或者位于 U+0000 到 U+001F 或 U+0080 到 U+009F 范围内 | Control               | 65     |
+| [Cf](https://www.compart.com/en/unicode/category/Cf) | 格式字符，格式字符是通常不呈现的字符，但它影响文本布局或文本处理操作                                  | Format                | 161    |
+| Co                                                   | 专用字符，其 Unicode 值在范围 U+E000 到 U+F8FF 内                               | Private Use           | 0      |
+| Cs                                                   | 代理项字符，其 Unicode 值在范围 U+D800 到 U+DFFF 内                              | Surrrogate            | 0      |
+| [Ll](https://www.compart.com/en/unicode/category/Ll) | 小写字母                                                                | Lowercase Letter      | 2155   |
+| [Lm](https://www.compart.com/en/unicode/category/Lm) | 修饰符字母，它是独立式的间距字符，指示前面字母的修改                                          | Modifier Letter       | 260    |
+| [Lo](https://www.compart.com/en/unicode/category/Lo) | 其他字母，不是大写字母、小写字母、词首字母大写或修饰符字母                                       | Other Letter          | 127004 |
+| [Lt](https://www.compart.com/en/unicode/category/Lt) | 指示字符是词首字母大写字母                                                       | Titlecase Letter      | 31     |
+| [Lu](https://www.compart.com/en/unicode/category/Lu) | 大写字母                                                                | Uppercase Letter      | 1791   |
+| [Mc](https://www.compart.com/en/unicode/category/Mc) | 标记，间距字符                                                             | Spacing Mark          | 443    |
+| [Me](https://www.compart.com/en/unicode/category/Me) | 标记，封闭符号                                                             | Enclosing Mark        | 13     |
+| [Mn](https://www.compart.com/en/unicode/category/Mn) | 标记，非间距字符                                                            | Nonspacing Mark       | 1839   |
+| [Nd](https://www.compart.com/en/unicode/category/Nd) | 十进制数字                                                               | Decimal Number        | 650    |
+| [Nl](https://www.compart.com/en/unicode/category/Nl) | 由字母表示的数字，而不是十进制数字，例如，罗马数字 5 由字母 "V" 表示                              | Letter Number         | 236    |
+| [No](https://www.compart.com/en/unicode/category/No) | 其他数字，不是十进制数字也不是字母数字，例如分数 1/2                                        | Other Number          | 895    |
+| [Pc](https://www.compart.com/en/unicode/category/Pc) | 标点，连接两个字符的连接符标点                                                     | Connector Punctuation | 10     |
+| [Pd](https://www.compart.com/en/unicode/category/Pd) | 标点，短划线或连字符                                                          | Dash Punctuation      | 25     |
+| [Pe](https://www.compart.com/en/unicode/category/Pe) | 标点，成对的标点符号（例如括号、方括号和大括号）之一的封闭字符                                     | Close Punctuation     | 73     |
+| [Pf](https://www.compart.com/en/unicode/category/Pf) | 标点，封闭或后引号                                                           | Final Punctuation     | 10     |
+| [Pi](https://www.compart.com/en/unicode/category/Pi) | 标点，开始或前引号                                                           | Initial Punctuation   | 12     |
+| [Po](https://www.compart.com/en/unicode/category/Po) | 标点，但不是连接符标点、短划线标点、开始标点、结束标点、前引号标点或后引号标点。                            | Other Punctuation     | 593    |
+| [Ps](https://www.compart.com/en/unicode/category/Ps) | 标点，成对的标点符号（例如括号、方括号和大括号）之一的开始字符                                     | Open Punctuation      | 75     |
+| [Sc](https://www.compart.com/en/unicode/category/Sc) | 符号，货币符号                                                             | Currency Symbol       | 62     |
+| [Sk](https://www.compart.com/en/unicode/category/Sk) | 符号，修饰符符号，指示环绕字符的修改                                                  | Modifier Symbol       | 123    |
+| [Sm](https://www.compart.com/en/unicode/category/Sm) | 符号，数学符号，例如 "+" 或 "="                                                | Math Symbol           | 948    |
+| [So](https://www.compart.com/en/unicode/category/So) | 符号，但不是数学符号、货币符号或修饰符符号                                               | Other Symbol          | 6431   |
+| [Zl](https://www.compart.com/en/unicode/category/Zl) | 分隔符，分隔文本各行，U+2028                                                   | Line Separator        | 1      |
+| [Zp](https://www.compart.com/en/unicode/category/Zp) | 分隔符，分隔段落，U+2029                                                     | Paragraph Separator   | 1      |
+| [Zs](https://www.compart.com/en/unicode/category/Zs) | 分隔符，空白字符                                                            | Space Separator       | 17     |
