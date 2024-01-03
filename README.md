@@ -439,3 +439,7 @@ Unicode 将编码空间分成 17 个平面，以 0 到 16 编号，每个平面�
 | [Zl](https://www.compart.com/en/unicode/category/Zl) | 分隔符，分隔文本各行，U+2028                                                   | Line Separator        | 1      |
 | [Zp](https://www.compart.com/en/unicode/category/Zp) | 分隔符，分隔段落，U+2029                                                     | Paragraph Separator   | 1      |
 | [Zs](https://www.compart.com/en/unicode/category/Zs) | 分隔符，空白字符                                                            | Space Separator       | 17     |
+
+## License
+
+This project is released under [MIT license](https://github.com/zejunwang1/learn-unicode/blob/main/LICENSE)
